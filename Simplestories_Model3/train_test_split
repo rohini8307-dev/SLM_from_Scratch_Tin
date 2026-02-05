@@ -1,4 +1,4 @@
-def tinystories_split(input_file, train_file, val_file, val_ratio=0.05):
+def split(input_file, train_file, val_file, val_ratio=0.05):
     with open(input_file, "r", encoding="utf-8") as f:
         stories = [line.rstrip() for line in f if line.strip()]
 
@@ -20,7 +20,7 @@ def tinystories_split(input_file, train_file, val_file, val_ratio=0.05):
     print("Val stories:", len(val))
 
 
-tinystories_split(
+split(
 "simple_stories.txt",
     "train_simp.txt",
     "val_simp.txt"
