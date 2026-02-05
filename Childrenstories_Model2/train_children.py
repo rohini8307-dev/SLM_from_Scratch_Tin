@@ -4,15 +4,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# -------------------------------------------------
-# Device
-# -------------------------------------------------
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
-# -------------------------------------------------
-# Model config (MUST match base model)
-# -------------------------------------------------
 class GPTConfig:
     vocab_size = 50257
     block_size = 256
@@ -21,9 +15,6 @@ class GPTConfig:
     n_embd = 336
     dropout = 0.1
 
-# -------------------------------------------------
-# Training hyperparameters
-# -------------------------------------------------
 batch_size = 32
 learning_rate = 1e-4
 weight_decay = 0.1
@@ -35,17 +26,13 @@ warmup_steps = 1_000
 eval_interval = 1_000
 eval_iters = 200
 
-# 🔹 Early stopping settings
-patience = 5                  # number of evals to wait
+patience = 5           
 best_val_loss = float("inf")
 patience_counter = 0
 
 train_bin = "train_ch.bin"
 val_bin = "val_ch.bin"
 
-# -------------------------------------------------
-# Dataset
-# -------------------------------------------------
 class BinDataset:
     def __init__(self, path, block_size):
         self.data = np.memmap(path, dtype=np.uint16, mode="r")
@@ -140,17 +127,12 @@ class GPT(nn.Module):
             )
         return logits, loss
 
-# -------------------------------------------------
-# Load base model
-# -------------------------------------------------
+
 checkpoint = torch.load("tinystories_28M_final.pt", map_location=device)
 model = GPT(GPTConfig()).to(device)
 model.load_state_dict(checkpoint["model_state_dict"])
 print("Loaded TinyStories base model")
 
-# -------------------------------------------------
-# Optimizer
-# -------------------------------------------------
 optimizer = torch.optim.AdamW(
     model.parameters(),
     lr=learning_rate,
@@ -161,9 +143,6 @@ optimizer = torch.optim.AdamW(
 train_data = BinDataset(train_bin, 256)
 val_data = BinDataset(val_bin, 256)
 
-# -------------------------------------------------
-# LR schedule
-# -------------------------------------------------
 def get_lr(step):
     if step < warmup_steps:
         return learning_rate * step / warmup_steps
@@ -181,9 +160,6 @@ def estimate_loss():
     model.train()
     return sum(losses) / len(losses)
 
-# -------------------------------------------------
-# Training loop with Early Stopping
-# -------------------------------------------------
 model.train()
 for step in range(max_steps):
 
