@@ -5,15 +5,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# -------------------------------------------------
-# Device
-# -------------------------------------------------
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
-# -------------------------------------------------
-# Model config (MUST MATCH TinyStories)
-# -------------------------------------------------
 class GPTConfig:
     vocab_size = 50257
     block_size = 256
@@ -22,9 +16,6 @@ class GPTConfig:
     n_embd = 336
     dropout = 0.1
 
-# -------------------------------------------------
-# Training hyperparameters
-# -------------------------------------------------
 batch_size = 32
 learning_rate = 3e-5
 weight_decay = 0.05
@@ -43,9 +34,6 @@ val_bin   = "val_simp.bin"
 
 checkpoint_path = "simple_stories_ckpt.pt"
 
-# -------------------------------------------------
-# Dataset
-# -------------------------------------------------
 class BinDataset:
     def __init__(self, path, block_size):
         self.data = np.memmap(path, dtype=np.uint16, mode="r")
@@ -63,9 +51,6 @@ class BinDataset:
         ])
         return x.to(device), y.to(device)
 
-# -------------------------------------------------
-# Model (IDENTICAL to TinyStories)
-# -------------------------------------------------
 class CausalSelfAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -138,9 +123,6 @@ class GPT(nn.Module):
             )
         return logits, loss
 
-# -------------------------------------------------
-# Init model (START FROM CHILDREN STORIES BASE)
-# -------------------------------------------------
 model = GPT(GPTConfig()).to(device)
 
 base_ckpt = torch.load("children_stories_fin.pt", map_location=device)
@@ -154,9 +136,6 @@ optimizer = torch.optim.AdamW(
     weight_decay=weight_decay
 )
 
-# -------------------------------------------------
-# Resume if checkpoint exists
-# -------------------------------------------------
 start_step = 0
 best_val_loss = float("inf")
 patience_counter = 0
@@ -173,9 +152,6 @@ if os.path.exists(checkpoint_path):
 train_data = BinDataset(train_bin, 256)
 val_data   = BinDataset(val_bin, 256)
 
-# -------------------------------------------------
-# LR schedule
-# -------------------------------------------------
 def get_lr(step):
     if step < warmup_steps:
         return learning_rate * step / warmup_steps
@@ -193,9 +169,6 @@ def estimate_loss():
     model.train()
     return sum(losses) / len(losses)
 
-# -------------------------------------------------
-# Training loop (CRASH-SAFE)
-# -------------------------------------------------
 model.train()
 for step in range(start_step, max_steps):
 
@@ -214,7 +187,7 @@ for step in range(start_step, max_steps):
 
     if step % eval_interval == 0 and step > 0:
         val_loss = estimate_loss()
-        print(f"🔍 val loss {val_loss:.4f}")
+        print(f"val loss {val_loss:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -228,14 +201,14 @@ for step in range(start_step, max_steps):
                 "patience_counter": patience_counter
             }, checkpoint_path)
 
-            print("✅ checkpoint saved")
+            print("checkpoint saved")
 
         else:
             patience_counter += 1
             print(f"No improvement ({patience_counter}/{patience})")
 
             if patience_counter >= patience:
-                print("🛑 Early stopping")
+                print("Early stopping")
                 break
 
 print("Training completed safely")
